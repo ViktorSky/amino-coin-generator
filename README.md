@@ -14,4 +14,5 @@ https://github.com/ViktorSky/amino-coin-generator/archive/refs/heads/main.zip
 ##### • requests
 ##### • flask
 ##### • json_minify
+##### • pytz
 ##### • amino.fix
