@@ -5,7 +5,7 @@
 parameters = {
 
     "community-link":
-        "http://aminoapps.com/invite/88KX3AEDHT"
+        "http://aminoapps.com/invite/"
     
 }
 
