@@ -5,7 +5,7 @@
 parameters = {
 
     "community-link":
-        "http://aminoapps.com/invite/"
+        "http://aminoapps.com/invite/88KX3AEDHT"
     
 }
 
@@ -25,7 +25,10 @@ from hashlib import sha1
 from hmac import new
 
 try:
-    import websocket
+    from websocket import (
+        WebSocketConnectionClosedException as ConectionError,
+        WebSocketApp
+    )
     import pytz
     import requests
     from flask import Flask
@@ -96,17 +99,19 @@ class Client:
             "NDC-MSG-SIG": ndc_msg_sig
         }
         
-        for i in range(4, 0, -1):
+        for n in range(4, 0, -1):
             try:
                 self.socket = WebSocketApp(
-                    "wss://ws{i}.narvii.com/?signbody={final.replace('|', '%7C')}",
+                    "wss://ws%d.narvii.com/?signbody=%s" % (
+                        n, final.replace('|', '%7C')
+                    ),
                     header=headers
                 )
                 self.socket_thread = Thread(target=self.socket.run_forever)
                 self.socket_thread.start()
                 time.sleep(3)
                 return self.socket.send(data)
-            except (ConectionError):
+            except (ConectionError) as Error:
                 continue
 
     def login(self, email: str, password: str):
