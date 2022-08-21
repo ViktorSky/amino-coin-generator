@@ -1,8 +1,8 @@
 # amino-coin-generator
 
-EN: Free amino coin generator script
+EN: Free amino coin generator script using python
 
-ES: Script generador de amino monedas gratuito
+ES: Script generador de amino monedas gratuito en python
 
 ## Download
 
@@ -13,4 +13,5 @@ https://github.com/ViktorSky/amino-coin-generator/archive/refs/heads/main.zip
 ##### • websocket-client
 ##### • requests
 ##### • flask
+##### • json_minify
 ##### • amino.fix
