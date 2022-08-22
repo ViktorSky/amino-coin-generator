@@ -19,7 +19,6 @@ emailFile = "acc.json"
 import os
 import time
 import json
-import base64
 import datetime
 from threading import Thread
 from base64 import b64encode
