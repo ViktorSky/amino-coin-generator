@@ -33,6 +33,7 @@ try:
     )
     import pytz
     import requests
+    import yarl
     from flask import Flask
     from json_minify import json_minify
 except:
@@ -45,6 +46,7 @@ finally:
     import requests
     import random
     import pytz
+    import yarl
     from flask import Flask
     from json_minify import json_minify
 
@@ -59,7 +61,9 @@ def run():
     flask_app.run(host=ht, port=pt)
 #----------------------------------------------------
 
-
+PREFIX = "19"
+DEVKEY = "e7309ecc0953c6fa60005b2765f99dbbc965c8e9"
+SIGKEY = "dfa5ed192dda6e88a12fe12130dc6206b1251e44"
 
 
 class Client:
@@ -73,9 +77,9 @@ class Client:
         "b89d9a00-f78e-46a3-bd54-6507d68b343c",
     "Accept-Language": "en-EN",
     "Content-Type":
-        "application/json; charset=utf-8",
+        "application/x-www-form-urlencoded; charset=utf-8",
     "User-Agent":
-        "Dalvik/2.1.0 (Linux; U; Android 5.1.1; SM-G973N Build/beyond1qlteue-user 5; com.narvii.amino.master/3.4.33562)",
+        "Apple iPhone12,1 iOS v15.5 Main/3.12.2",
     "Host": "service.narvii.com",
     "Accept-Encoding": "gzip",
     "Connection": "Keep-Alive"}
@@ -84,14 +88,14 @@ class Client:
         self.socket, self.auid = None, None
 
     def generate_signature_message(self, data: str) -> str:
-        signature_message = b64encode(bytes.fromhex("42") + new(bytes.fromhex("F8E7A61AC3F725941E3AC7CAE2D688BE97F30B93"),data.encode("utf-8"), sha1).digest()).decode("utf-8")
+        signature_message = b64encode(bytes.fromhex(PREFIX) + new(bytes.fromhex(SIGKEY), data.encode("utf-8"), sha1).digest()).decode("utf-8")
         self.headers["NDC-MSG-SIG"]=signature_message
         return signature_message
 
     def generate_device_Id(self) -> str:
         identifier = os.urandom(20)
-        mac = new(bytes.fromhex("02B258C63559D8804321C5D5065AF320358D366F"), bytes.fromhex("42") + identifier, sha1)
-        return f"42{identifier.hex()}{mac.hexdigest()}".upper()
+        mac = new(bytes.fromhex(DEVKEY), bytes.fromhex(PREFIX) + identifier, sha1)
+        return f"{PREFIX}{identifier.hex()}{mac.hexdigest()}".upper()
     
     def ws_send(self, data):
         if self.sid is None: return
@@ -102,13 +106,21 @@ class Client:
             "NDCAUTH": f"sid={self.sid}",
             "NDC-MSG-SIG": ndc_msg_sig
         }
-        
-        host, port = None, None
-        
-        if any(self.proxies) and (proxy:=self.proxies.get("http")):
-            host = proxy[::-1][proxy[::-1].index(":")+1:][::-1]
-            port = int(proxy[::-1][:proxy[::-1].index(":")][::-1])
-        
+        kwargs = {}
+        proxy = self.proxies.get('https')
+        if proxy:
+            proxy = f"https://{proxy}" if "http" not in proxy else proxy
+            proxy = yarl.URL(proxy)
+            kwargs = {
+                "proxy_type": "https",
+                "http_proxy_host": proxy.host,
+                "http_proxy_port": proxy.port
+            }
+            if proxy.user:
+                kwargs.update(
+                    http_proxy_auth=(proxy.user, proxy.password)
+                )
+
         for n in range(4, 0, -1):
             try:
                 self.socket = WebSocketApp(
@@ -119,8 +131,7 @@ class Client:
                 )
                 self.socket_thread = Thread(
                     target=self.socket.run_forever,
-                    kwargs={"http_proxy_host": host,
-                    "http_proxy_port": port}
+                    kwargs=kwargs
                 )
                 self.socket_thread.start()
                 time.sleep(3)
