@@ -10,7 +10,8 @@ savePath = "acc.json"
 #############
 
 
-clear = lambda: os.system('cls' if os.name=='nt' else 'clear')
+def clear():
+    os.system('cls' if os.name=='nt' else 'clear')
 
 
 info = (
@@ -19,7 +20,7 @@ info = (
 )
 
 
-infoError =(
+infoError = (
     "~ Invalid account, do you want to save it? [Y/N]: "
 )
 

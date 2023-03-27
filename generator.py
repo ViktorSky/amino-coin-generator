@@ -1,11 +1,12 @@
-#   by ReYeS
-#     _;)  ~~8:> ~~8:>
-#   Update by V¡ktor
+#  by ReYeS
+#    _;)  ~~8:> ~~8:>
+#  Update by V¡ktor
+#  https://github.com/ViktorSky/amino-coin-generator
 
 parameters = {
 
     "community-link":
-        "http://aminoapps.com/invite/5G0A09Y6RE",
+        "http://aminoapps.com/invite/88KX3AEDHT",
     "proxies": {
         "https": None #"159.197.250.171:3128",
     }
@@ -72,17 +73,17 @@ class Client:
         self.device_Id = self.generate_device_Id() if not deviceId else deviceId
         self.session = requests.Session()
         self.headers = {
-    "NDCDEVICEID": self.device_Id,
-    "SMDEVICEID":
-        "b89d9a00-f78e-46a3-bd54-6507d68b343c",
-    "Accept-Language": "en-EN",
-    "Content-Type":
-        "application/x-www-form-urlencoded; charset=utf-8",
-    "User-Agent":
-        "Apple iPhone12,1 iOS v15.5 Main/3.12.2",
-    "Host": "service.narvii.com",
-    "Accept-Encoding": "gzip",
-    "Connection": "Keep-Alive"}
+            "NDCDEVICEID": self.device_Id,
+            "SMDEVICEID":
+                "b89d9a00-f78e-46a3-bd54-6507d68b343c",
+            "Accept-Language": "en-EN",
+            "Content-Type":
+                "application/x-www-form-urlencoded; charset=utf-8",
+            "User-Agent":
+                "Apple iPhone12,1 iOS v15.5 Main/3.12.2",
+            "Host": "service.narvii.com",
+            "Accept-Encoding": "gzip",
+            "Connection": "Keep-Alive"}
         self.proxies = proxies
         self.socket_thread, self.sid = None, None
         self.socket, self.auid = None, None
@@ -177,7 +178,7 @@ class Client:
         return request
 
     def watch_ad(self):
-        return self.session.post(f"{self.api}/g/s/wallet/ads/video/start?sid={self.sid}", headers=self.headers, proxies=self.proxies).json()
+        return self.session.post(f"{self.api}/g/s/wallet/ads/video/start?sid={self.sid}&auid={self.auid}", headers=self.headers, proxies=self.proxies).json()
 
     def get_from_link(self, link: str):
         return self.session.get(f"{self.api}/g/s/link-resolution?q={link}", headers=self.headers, proxies=self.proxies).json()
@@ -209,7 +210,10 @@ class App:
     def __init__(self):
         self.proxies = parameters["proxies"]
         self.client = Client(proxies=self.proxies)
-        extensions = self.client.get_from_link(parameters["community-link"])["linkInfoV2"]["extensions"]
+        info = self.client.get_from_link(parameters["community-link"])
+        try: extensions = ["linkInfoV2"]["extensions"]
+        except KeyError:
+            raise RuntimeError(info.get("api:message"))
         self.comId=extensions["community"]["ndcId"]
         try: self.invitationId = extensions["invitationId"]
         except: self.invitationId = None
