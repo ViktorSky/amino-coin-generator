@@ -6,7 +6,7 @@
 parameters = {
 
     "community-link":
-        "http://aminoapps.com/invite/88KX3AEDHT",
+        "http://aminoapps.com/invite/77FC1LEDHT",
     "proxies": {
         "https": None #"159.197.250.171:3128",
     }
