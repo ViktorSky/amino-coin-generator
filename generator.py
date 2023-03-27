@@ -4,7 +4,6 @@
 #  https://github.com/ViktorSky/amino-coin-generator
 
 parameters = {
-
     "community-link":
         "http://aminoapps.com/invite/77FC1LEDHT",
     "proxies": {
@@ -211,7 +210,7 @@ class App:
         self.proxies = parameters["proxies"]
         self.client = Client(proxies=self.proxies)
         info = self.client.get_from_link(parameters["community-link"])
-        try: extensions = ["linkInfoV2"]["extensions"]
+        try: extensions = info["linkInfoV2"]["extensions"]
         except KeyError:
             raise RuntimeError(info.get("api:message"))
         self.comId=extensions["community"]["ndcId"]
