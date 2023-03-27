@@ -16,8 +16,15 @@ Pon tu link de comunidad o link de invitacion en main.py (Parameters)
 4- execute main.py / ejecute main.py
 
 ## Download
+### Method 1 (git)
+```
+git clone https://github.com/ViktorSky/amino-coin-generator.git
+```
 
+### Method 2 (zip)
+```
 https://github.com/ViktorSky/amino-coin-generator/archive/refs/heads/main.zip
+```
 
 ## Requirements
 
