@@ -2,4 +2,4 @@ websocket-client
 json_minify
 flask
 pytz
-requests
+requests[socks]
