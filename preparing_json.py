@@ -86,7 +86,8 @@ while True:
     if not sid and input(infoError).lower().strip() == "n":pass
     else:
         accounts.append(data)
-        with open(savePath, "w") as file:
+        with open(savePath, 'w') as file:
             dump(accounts, file, indent=4)
-            print("~ %r saved!" % email)
-            os.remove("device.json")
+            print('~ %r saved!' % email)
+            if os.path.exists('device.json'):
+                os.remove('device.json')
