@@ -68,7 +68,7 @@ SIGKEY = "dfa5ed192dda6e88a12fe12130dc6206b1251e44"
 
 class Client:
     def __init__(self, deviceId=None, proxies: dict=None) -> None:
-        self.api = "https://service.narvii.com/api/v1"
+        self.api = "https://service.aminoapps.com/api/v1"
         self.device_Id = self.generate_device_Id() if not deviceId else deviceId
         self.session = requests.Session()
         self.headers = {
@@ -124,7 +124,7 @@ class Client:
         for n in range(4, 0, -1):
             try:
                 self.socket = WebSocketApp(
-                    "wss://ws%d.narvii.com/?signbody=%s" % (
+                    "wss://ws%d.aminoapps.com/?signbody=%s" % (
                         n, final.replace('|', '%7C')
                     ),
                     header=headers
