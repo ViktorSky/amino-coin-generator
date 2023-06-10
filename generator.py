@@ -251,4 +251,7 @@ class App:
 
 if __name__ == "__main__":
     Thread(target=run).start()
-    App().run()
+    try:
+        App().run()
+    except KeyboardInterrupt:
+        os.abort()
