@@ -257,7 +257,7 @@ class App:
                 time.sleep(4)
             end = int(time.time() - start)
             total = ("%d minutes" % round(end/60)) if end > 90 else ("%d seconds" % end)
-            print("[\033[1;31mcoins-generator\033[0m][\033[1;25;32mend\033[0m][%s]: Finished in %s." % (email, total))
+            print("[\033[1;31mcoins-generator\033[0m][\033[1;25;32mend\033[0m]: Finished in %s." % total)
         except Exception as error:
             print("[\033[1;31mC01?-G3?3R4?0R\033[0m]][\033[1;31merror\033[0m]]: %s(%s)" % (type(error).__name__, error))
 
