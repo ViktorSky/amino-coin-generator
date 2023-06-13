@@ -114,7 +114,7 @@ class Client:
         for n in range(4, 0, -1):
             try:
                 self.socket = WebSocketApp(
-                    socket_url % (n, final.replace('|', '%7C')),
+                    socket_url.human_repr() % (n, final.replace('|', '%7C')),
                     header=self.build_headers(final)
                 )
                 self.socket_thread = Thread(
