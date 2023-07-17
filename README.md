@@ -4,6 +4,10 @@ EN: Free amino coin generator script using python
 
 ES: Script generador de amino monedas gratuito en python
 
+## YouTube tutorial
+
+- https://youtu.be/OxArQZVgcJw
+
 ## Guide | Tutorial
 
 1- execute prepare_json.py / ejecute prepare_json.py
