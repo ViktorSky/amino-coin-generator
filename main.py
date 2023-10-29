@@ -1,11 +1,13 @@
 #  by ReYeS
 #    _;)  ~~8:> ~~8:>
-#  Update by V¡ktor
+#  updated by V¡ktor
+#  v1.0.0
 #  https://github.com/ViktorSky/amino-coin-generator
 
 import os
-import time
-import json
+from urllib.parse import urljoin, urlencode
+from time import time, sleep
+from json import dumps, load
 from datetime import datetime
 from random import randint
 from threading import Thread
@@ -15,22 +17,33 @@ from hmac import new
 
 os.system('pip install -r requirements.txt')
 
-from websocket import WebSocketApp, WebSocketConnectionClosedException
+from websocket import WebSocket, WebSocketConnectionClosedException
 from requests import Session
 from yarl import URL
-import pytz
+from pytz import timezone as pytz_timezone
 from flask import Flask
 from json_minify import json_minify
 
 
 parameters = {
+    # community link or invite link
     "community-link":
         "http://aminoapps.com/invite/77FC1LEDHT",
+    # file containing the accounts list[dict]: email, password, device
     "accounts-file":
         "acc.json",
+    # proxy for https and wss requests
     "proxies": {
         "https": None
-    }
+    },
+    # header content-language: english: 'en-US', spanish: 'es-ES', ...
+    "logger-language": "en-US",
+    # send-activity cooldown
+    "activity-coldown": 5,
+    # api requests cooldown
+    "request-cooldown": 1,
+    # browse bots in the community (online)
+    "show-online": True,
 }
 
 PREFIX = '19'
@@ -49,25 +62,29 @@ def run():
 
 
 class Client:
-    api = "https://service.aminoapps.com/api/v1"
+    api = "https://service.aminoapps.com/api/v1/"
 
     def __init__(self, device=None, proxies=None) -> None:
-        self.device = device or self.generate_device()
+        self.device = self.update_device(device or self.generate_device())
         self.proxies = proxies or {}
         self.session = Session()
-        self.socket = None
+        self.socket = WebSocket()
         self.socket_thread = None
         self.sid = None
         self.auid = None
+
+    @property
+    def connected(self):
+        return isinstance(self.socket, WebSocket) and self.socket.connected
 
     def build_headers(self, data=None):
         headers = {
             "NDCDEVICEID": self.device,
             "SMDEVICEID": "b89d9a00-f78e-46a3-bd54-6507d68b343c",
-            "Accept-Language": "en-EN",
+            "Accept-Language": parameters.get('logger-language', 'en-US'),
             "Content-Type": "application/x-www-form-urlencoded; charset=utf-8",
             "User-Agent": "Apple iPhone12,1 iOS v15.5 Main/3.12.2",
-            "Host": "service.narvii.com",
+            "Host": "service.aminoapps.com",
             "Accept-Encoding": "gzip",
             "Connection": "Keep-Alive"
         }
@@ -88,17 +105,20 @@ class Client:
             ).digest()
         ).decode("utf-8")
 
-    def generate_device(self):
-        info = bytes.fromhex(PREFIX) + os.urandom(20)
-        return info.hex() + new(
+    def generate_device(self, info=None):
+        data = bytes.fromhex(PREFIX) + (info or os.urandom(20))
+        return data.hex() + new(
             bytes.fromhex(DEVKEY),
-            info, sha1
+            data, sha1
         ).hexdigest()
 
-    def ws_send(self, data):
-        if self.sid is None:
+    def update_device(self, device):
+        return self.generate_device(bytes.fromhex(device)[1:21])
+
+    def ws_connect(self):
+        if not self.sid:
             return
-        final = f"%s|%d" % (self.device, int(time.time() * 1000))
+        final = f"%s|%d" % (self.device, int(time() * 1000))
         kwargs = {}
         proxy = self.proxies.get('https')
         if proxy:
@@ -113,98 +133,90 @@ class Client:
             socket_url = socket_url.with_scheme("ws")
         for n in range(4, 0, -1):
             try:
-                self.socket = WebSocketApp(
-                    socket_url.human_repr() % (n, final.replace('|', '%7C')),
-                    header=self.build_headers(final)
-                )
-                self.socket_thread = Thread(
-                    target=self.socket.run_forever,
-                    kwargs=kwargs
-                )
-                self.socket_thread.start()
-                time.sleep(3.2)
-                return self.socket.send(data)
+                connect_url = socket_url.human_repr() % (n, final.replace('|', '%7C'))
+                header = self.build_headers(final)
+                self.socket.connect(url=connect_url, header=header, **kwargs)
             except WebSocketConnectionClosedException:
+                sleep(1)
                 continue
+            else:
+                break
+
+    def ws_send(self, data):
+        if not self.connected:
+            return
+        self.socket.send(data)
+
+    def request(self, method, path, json, minify=False, ndcId=0, scope=False):
+        ndc = (f'g/s-x{ndcId}/' if scope else f'x{ndcId}/s/') if ndcId else 'g/s/'
+        url = urljoin(self.api, urljoin(ndc, path.removeprefix('/')))
+        data, method = None, method.upper()
+        if method in ['GET'] and json:
+            if not url.count('?'):
+                url += '?'
+            url += urlencode(json)
+        elif method in ['POST']:
+            data = dumps(json or {})
+            if minify:
+                data = json_minify(data)
+        else:
+            raise NotImplementedError(method)
+        headers = self.build_headers(data)
+        return self.session.request(
+            method=method,
+            url=url,
+            data=data,
+            headers=headers,
+            proxies=self.proxies
+        ).json()
 
     def login(self, email, password):
-        data = json.dumps({
+        response = self.request('POST', 'auth/login', {
              "email": email,
              "secret": "0 %s" % password,
              "deviceID": self.device,
              "clientType": 100,
              "action": "normal",
-             "timestamp": int(time.time() * 1000)
+             "timestamp": int(time() * 1000)
         })
-        request = self.session.post(
-            url="%s/g/s/auth/login" % self.api,
-            data=data,
-            headers=self.build_headers(data),
-            proxies=self.proxies
-        ).json()
-        self.sid = request.get("sid")
-        self.auid = request.get("auid")
-        return request
+        self.sid = response.get("sid")
+        self.auid = response.get("auid")
+        return response
 
     def join_community(self, ndcId, invitationId=None):
-        data = {"timestamp": int(time.time() * 1000)}
+        data = {"timestamp": int(time() * 1000)}
         if invitationId:
             data["invitationId"] = invitationId
-        data = json.dumps(data)
-        return self.session.post(
-            url="%s/x%s/s/community/join?sid=%s&auid=%s" % (self.api, ndcId, self.sid, self.auid),
-            data=data,
-            headers=self.build_headers(data),
-            proxies=self.proxies
-        ).json()
+        return self.request('POST', f'community/join?sid={self.sid}&auid={self.auid}', data, ndcId=ndcId)
 
     def send_active_object(self, ndcId, timers=None, timezone=0):
-        data = json_minify(json.dumps({
+        return self.request('POST', f'community/stats/user-active-time?sid={self.sid}&auid={self.auid}', {
             "userActiveTimeChunkList": timers,
-            "timestamp": int(time.time() * 1000),
+            "timestamp": int(time() * 1000),
             "optInAdsFlags": 2147483647,
             "timezone": timezone
-        }))
-        return self.session.post(
-            url="%s/x%s/s/community/stats/user-active-time?sid=%s&auid=%s" % (self.api, ndcId, self.sid, self.auid),
-            data=data,
-            headers=self.build_headers(data),
-            proxies=self.proxies
-        ).json()
+        }, minify=True, ndcId=ndcId)
 
     def watch_ad(self):
-        return self.session.post(
-            "%s/g/s/wallet/ads/video/start?sid=%s&auid=%s" % (self.api, self.sid, self.auid),
-            headers=self.build_headers(),
-            proxies=self.proxies
-        ).json()
-
+        return self.request('POST', f'wallet/ads/video/start?sid={self.sid}&auid={self.auid}', {
+            'timestamp': int(time() * 1000)
+        })
     
     def get_from_link(self, link):
-        return self.session.get(
-            url="%s/g/s/link-resolution?q=%s" % (self.api, link),
-            headers=self.build_headers(),
-            proxies=self.proxies
-        ).json()
+        return self.request('GET', 'link-resolution', {'q': link})
 
     def lottery(self, ndcId, timezone=0):
-        data = json.dumps({
+        return self.request('POST', f'check-in/lottery?sid={self.sid}&auid={self.auid}', {
             "timezone": timezone,
-            "timestamp": int(time.time() * 1000)
-        })
-        return self.session.post(
-            url="%s/x%s/s/check-in/lottery?sid=%s&auid=%s" % (self.api, ndcId, self.sid, self.auid),
-            data=data,
-            headers=self.build_headers(data),
-            proxies=self.proxies
-        ).json()
+            "timestamp": int(time() * 1000)
+        }, ndcId=ndcId)
 
     def show_online(self, ndcId):
-        self.ws_send(json.dumps({
+        self.ws_send(dumps({
             "o": {
                 "actions": ["Browsing"],
                 "target": "ndc://x%s/" % ndcId,
-                "ndcId": int(ndcId),
+                "ndcId": ndcId,
                 "id": "82333"
             },
             "t": 304
@@ -214,7 +226,7 @@ class Client:
 class Config:
     def __init__(self):
         with open(parameters["accounts-file"], "r") as config:
-            self.account_list = json.load(config)
+            self.account_list = load(config)
 
 
 class App:
@@ -230,7 +242,7 @@ class App:
 
     def tzc(self):
         for _ in ['Etc/GMT' + (f'+{i}' if i > 0 else str(i)) for i in range(-12, 12)]:
-            zone = datetime.now(pytz.timezone(_))
+            zone = datetime.now(pytz_timezone(_))
             if zone.hour != 23:
                 continue
             return int(zone.strftime('%Z').replace('GMT', '00')) * 60
@@ -239,23 +251,29 @@ class App:
     def generation(self, email, password, device):
         if device:
             self.client.device = device
-        start = time.time()
+        start = time()
         try:
             message = self.client.login(email, password)['api:message']
             print("\n[\033[1;31mcoins-generator\033[0m][\033[1;34mlogin\033[0m][%s]: %s." % (email, message))
+            sleep(parameters.get('request-cooldown', 1))
             message = self.client.join_community(self.ndcId, self.invitationId)['api:message']
             print("[\033[1;31mcoins-generator\033[0m][\033[1;36mjoin-community\033[0m]: %s." % message)
-            self.client.show_online(self.ndcId)
+            sleep(parameters.get('request-cooldown', 1))
+            if parameters.get('show-online', True):
+                self.client.ws_connect()
+                self.client.show_online(self.ndcId)
             message = self.client.lottery(self.ndcId, self.tzc())['api:message']
             print("[\033[1;31mcoins-generator\033[0m][\033[1;32mlottery\033[0m]: %s" % message)
+            sleep(parameters.get('request-cooldown', 1))
             message = self.client.watch_ad()['api:message']
             print("[\033[1;31mcoins-generator\033[0m][\033[1;33mwatch-ad\033[0m]: %s." % message)
+            sleep(parameters.get('request-cooldown', 1))
             for _ in range(24):
-                timers = [{'start': int(time.time()), 'end': int(time.time()) + 300} for _ in range(50)]
+                timers = [{'start': int(time()), 'end': int(time()) + 300} for _ in range(50)]
                 message = self.client.send_active_object(self.ndcId, timers, self.tzc())['api:message']
                 print("[\033[1;31mcoins-generator\033[0m][\033[1;35mmain-proccess\033[0m][%s]: %s." % (email, message))
-                time.sleep(4)
-            end = int(time.time() - start)
+                sleep(parameters.get('activity-coldown', 5))
+            end = int(time() - start)
             total = ("%d minutes" % round(end/60)) if end > 90 else ("%d seconds" % end)
             print("[\033[1;31mcoins-generator\033[0m][\033[1;25;32mend\033[0m]: Finished in %s." % total)
         except Exception as error:
