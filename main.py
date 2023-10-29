@@ -1,7 +1,7 @@
 #  by ReYeS
 #    _;)  ~~8:> ~~8:>
 #  updated by V¡ktor
-#  v1.0.0
+#  v3.0.0
 #  https://github.com/ViktorSky/amino-coin-generator
 
 import os
