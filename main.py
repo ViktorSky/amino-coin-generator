@@ -136,7 +136,7 @@ class Client:
             if url.user:
                 kwargs["http_proxy_auth"] = (url.user, url.password)
         socket_url = URL("wss://ws%d.aminoapps.com/?signbody=%s")
-        if not kwargs.get("proxy_type", "https").endswith("s"):
+        if not kwargs.get("proxy_type", "https").endswith(("s", "5")):
             socket_url = socket_url.with_scheme("ws")
         for n in range(4, 0, -1):
             try:
