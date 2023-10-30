@@ -77,7 +77,7 @@ class Client:
     def connected(self):
         return isinstance(self.socket, WebSocket) and self.socket.connected
 
-    def build_headers(self, data=None):
+    def build_headers(self, data=None, content_type=None):
         headers = {
             "NDCDEVICEID": self.device,
             "SMDEVICEID": "b89d9a00-f78e-46a3-bd54-6507d68b343c",
@@ -88,6 +88,8 @@ class Client:
             "Accept-Encoding": "gzip",
             "Connection": "Keep-Alive"
         }
+        if content_type:
+            headers["Content-Type"] = content_type
         if data:
             headers["NDC-MSG-SIG"] = self.generate_signature(data)
         if self.sid:
@@ -119,7 +121,12 @@ class Client:
         if not self.sid:
             return
         final = f"%s|%d" % (self.device, int(time() * 1000))
-        kwargs = {}
+        kwargs, header = {}, {
+            'NDCDEVICEID': self.device,
+            'NDCAUTH': self.sid,
+            'Content-Type': 'text/plain',
+            'NDC-MSG-SIG': self.generate_signature(final)
+        }
         proxy = self.proxies.get('https')
         if proxy:
             url = URL(f"https://{proxy}" if "http" not in proxy else proxy)
@@ -134,7 +141,6 @@ class Client:
         for n in range(4, 0, -1):
             try:
                 connect_url = socket_url.human_repr() % (n, final.replace('|', '%7C'))
-                header = self.build_headers(final)
                 self.socket.connect(url=connect_url, header=header, **kwargs)
             except WebSocketConnectionClosedException:
                 sleep(1)
