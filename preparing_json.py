@@ -1,16 +1,18 @@
-from json import dump
-from contextlib import suppress
+import json
 import os
-try: os.system("pip install --upgrade amino.fix")
-finally: import aminofix
-
+import typing
+try:
+    import k_amino.lib
+except ModuleNotFoundError:
+    os.system("pip install --upgrade k-amino.py")
+    raise RuntimeError("reload is required after install k-amino.py") from None
 
 ################
 savePath = "acc.json"
 #############
 
 
-def clear():
+def clear() -> None:
     os.system('cls' if os.name=='nt' else 'clear')
 
 
@@ -35,59 +37,36 @@ print(
 )
 
 
-Format = {
-    "email": None,
-    "password": None,
-    "device": None,
-    "uid": None,
-    "sid": None
-}
-
-
-def show_accounts():
+def show_accounts() -> None:
     print("\n~ Accounts: %d" % len(accounts))
 
+accounts: typing.List[typing.Dict[str, str]] = []
 
-def get_data(
-    email: str=None,
-    password=None,
-    device: str=None,
-    uid: str=None,
-    sid: str=None
-) -> dict:
-    return dict(zip(
-        ("email", "password", "device", "uid", "sid"),
-        (email, password, device, uid, sid)
-    ))
+if os.path.exists(savePath):
+    with open(savePath, 'r') as file:
+        accounts.extend(json.load(file))
 
-
-accounts = []
 while True:
-    email, password = None, None
-    device, sid, uid = None, None, None
     show_accounts()
+    amino = k_amino.Client()
     email = input("~ Email: ")
     password = input("~ Password: ")
-    with suppress(Exception):
-        amino = aminofix.Client()
-        device = amino.device_id
+    device = amino.deviceId
+    try:
         amino.login(email, password)
-        sid = amino.sid
-        uid = amino.userId
-    
-    data = get_data(
+    except k_amino.lib.APIError as api:
+        print("~ error:", "({})".format(type(api).__name__), api.message)
+        if input(infoError).lower().strip() == "n":
+            continue
+    except k_amino.lib.AminoBaseException as exc:
+        print("~ error:", repr(exc))
+        if input(infoError).lower().strip() == "n":
+            continue
+    accounts.append(dict(
         email=email,
         password=password,
-        device=device,
-        sid=sid,
-        uid=uid
-    )
-    
-    if not sid and input(infoError).lower().strip() == "n":pass
-    else:
-        accounts.append(data)
-        with open(savePath, 'w') as file:
-            dump(accounts, file, indent=4)
-            print('~ %r saved!' % email)
-            if os.path.exists('device.json'):
-                os.remove('device.json')
+        device=device
+    ))
+    with open(savePath, 'w') as f:
+        json.dump(accounts, f, indent=4)
+        print('~ %r saved!' % email)
