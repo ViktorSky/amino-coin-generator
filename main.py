@@ -39,11 +39,12 @@ parameters = {
     # header content-language: english: 'en-US', spanish: 'es-ES', ...
     "logger-language": "en-US",
     # send-activity cooldown
-    "activity-coldown": 5,
+    "activity-coldown": 6,
     # api requests cooldown
     "request-cooldown": 1,
     # browse bots in the community (online)
     "show-online": True,
+    "run-flask": True
 }
 
 PREFIX = '19'
@@ -80,7 +81,9 @@ class Client:
     def build_headers(self, data=None, content_type=None):
         headers = {
             "NDCDEVICEID": self.device,
-            "SMDEVICEID": "b89d9a00-f78e-46a3-bd54-6507d68b343c",
+            "SMDEVICEID":
+                #"b89d9a00-f78e-46a3-bd54-6507d68b343c",
+                "36934779-e39a-4af7-9f98-9e737929598c",
             "Accept-Language": parameters.get('logger-language', 'en-US'),
             "Content-Type": "application/x-www-form-urlencoded; charset=utf-8",
             "User-Agent": "Apple iPhone12,1 iOS v15.5 Main/3.12.2",
@@ -91,6 +94,7 @@ class Client:
         if content_type:
             headers["Content-Type"] = content_type
         if data:
+            #headers["Content-Type"] = "application/json; charset=utf-8"
             headers["NDC-MSG-SIG"] = self.generate_signature(data)
         if self.sid:
             headers["NDCAUTH"] = "sid=%s" % self.sid
@@ -166,7 +170,7 @@ class Client:
             if minify:
                 data = json_minify(data)
         else:
-            raise NotImplementedError(method)
+            raise NotImplementedError(method) from None
         headers = self.build_headers(data)
         return self.session.request(
             method=method,
@@ -242,7 +246,7 @@ class App:
         info = self.client.get_from_link(parameters["community-link"])
         try: extensions = info["linkInfoV2"]["extensions"]
         except KeyError:
-            raise RuntimeError('community: %s' % info["api:message"])
+            raise RuntimeError('community: %s' % info["api:message"]) from None
         self.ndcId = extensions["community"]["ndcId"]
         self.invitationId = extensions.get("invitationId")
 
@@ -296,7 +300,8 @@ class App:
 
 if __name__ == "__main__":
     os.system("cls" if os.name == 'nt' else "clear")
-    Thread(target=run).start()
+    if parameters.get("run-flask", False):
+        Thread(target=run).start()
     try:
         App().run()
     except KeyboardInterrupt:
