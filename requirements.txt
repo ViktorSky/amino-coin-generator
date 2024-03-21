@@ -1,4 +1,4 @@
-websocket-client
+websocket-client[optional]
 json_minify
 flask
 pytz
