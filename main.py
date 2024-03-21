@@ -129,8 +129,8 @@ class Client:
         }
         proxy = self.proxies.get('https')
         if proxy:
-            url = URL(f"https://{proxy}" if "http" not in proxy else proxy)
-            kwargs["proxy_type"] = url.scheme if 'http' in url.scheme else 'https'
+            url = URL(f"https://{proxy}" if "://" not in proxy else proxy)
+            kwargs["proxy_type"] = url.scheme
             kwargs["http_proxy_host"] = url.host
             kwargs["http_proxy_port"] = url.port
             if url.user:
