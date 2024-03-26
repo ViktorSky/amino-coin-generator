@@ -1,11 +1,13 @@
 import json
 import os
+import sys
 import typing
 try:
     import k_amino.lib
 except ModuleNotFoundError:
-    os.system("pip install --upgrade k-amino.py")
-    raise RuntimeError("reload is required after install k-amino.py") from None
+    os.system(f"{sys.executable} -m pip install --upgrade k-amino.py")
+    print("reload is required after install k-amino.py")
+    exit(0)
 
 ################
 savePath = "acc.json"
