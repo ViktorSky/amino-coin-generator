@@ -5,6 +5,8 @@
 #  https://github.com/ViktorSky/amino-coin-generator
 
 import os
+import sys
+
 from urllib.parse import urljoin, urlencode
 from time import time, sleep
 from json import dumps, load
@@ -15,7 +17,11 @@ from base64 import b64encode
 from hashlib import sha1
 from hmac import new
 
-os.system('pip install -r requirements.txt')
+try:
+    requirements = os.path.join(os.path.dirname(__file__), 'requirements.txt')
+    os.system(f'{sys.executable} -m pip install -r {requirements}')
+except NameError:
+    pass
 
 from websocket import WebSocket, WebSocketConnectionClosedException
 from requests import Session
