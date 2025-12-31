@@ -1,4 +1,4 @@
-# amino-coin-generator
+# amino-coin-generator (server closed)
 
 EN: Free amino coin generator script using python
 
@@ -29,3 +29,4 @@ git clone https://github.com/ViktorSky/amino-coin-generator.git
 ```
 https://github.com/ViktorSky/amino-coin-generator/archive/refs/heads/main.zip
 ```
+
